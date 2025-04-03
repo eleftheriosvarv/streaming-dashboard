@@ -7,3 +7,13 @@ export default defineConfig({
     port: 4173
   }
 })
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 4173
+  },
+  preview: {
+    port: 4173,
+    allowedHosts: ['frontend-dashboard-fyjc.onrender.com']
+  }
+})
