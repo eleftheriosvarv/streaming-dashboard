@@ -5,8 +5,17 @@ import psycopg2
 import psycopg2.extras
 import os
 import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://frontend-dashboard-fyjc.onrender.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Database config
 DB_CONFIG = {
@@ -66,12 +75,12 @@ def get_latest_updates():
                 timestamp=row["timestamp"],
                 start_location=row["start_location"],
                 end_location=row["end_location"],
-                start_latitude=row["start_latitude"],
-                start_longitude=row["start_longitude"],
+                start_latitude=round(row["start_latitude"], 2),
+                start_longitude=round(row["start_longitude"], 2),
                 driving_travel_time=row["driving_travel_time"],
                 transit_travel_time=row["transit_travel_time"],
                 travel_time_difference=row["travel_time_difference"],
-                delay_ratio=row["delay_ratio"],
+                delay_ratio=round(row["delay_ratio"], 2),
                 aqi=row["aqi"]
             )
             for row in rows
@@ -92,11 +101,11 @@ def get_hourly_averages():
                     ELSE 'weekday'
                 END AS day_type,
                 EXTRACT(HOUR FROM timestamp) AS hour,
-                AVG(driving_travel_time) AS avg_driving_travel_time,
-                AVG(transit_travel_time) AS avg_transit_travel_time,
-                AVG(travel_time_difference) AS avg_travel_time_difference,
-                AVG(delay_ratio) AS avg_delay_ratio,
-                AVG(aqi) AS avg_aqi
+                ROUND(AVG(driving_travel_time), 2) AS avg_driving_travel_time,
+                ROUND(AVG(transit_travel_time), 2) AS avg_transit_travel_time,
+                ROUND(AVG(travel_time_difference), 2) AS avg_travel_time_difference,
+                ROUND(AVG(delay_ratio), 2) AS avg_delay_ratio,
+                ROUND(AVG(aqi), 2) AS avg_aqi
             FROM travel_updates
             GROUP BY route_id, day_type, hour
             ORDER BY route_id, day_type, hour;
@@ -121,7 +130,3 @@ def get_hourly_averages():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-        return results
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
