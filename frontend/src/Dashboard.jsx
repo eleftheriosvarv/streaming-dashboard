@@ -14,10 +14,9 @@ export default function Dashboard() {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
       .then(res => res.json())
       .then(data => {
-        console.log("✅ hourlyData loaded:", data);
         setHourlyData(data);
       })
-      .catch(err => console.error("❌ Failed to fetch hourly averages", err));
+      .catch(err => console.error("Failed to fetch hourly averages", err));
   }, []);
 
   const uniqueRoutes = Array.from(
@@ -34,7 +33,6 @@ export default function Dashboard() {
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-6">Travel Dashboard</h2>
 
-      {/* Route Selection */}
       <div className="mb-4">
         <label className="mr-2 font-medium">Select Route:</label>
         <select
@@ -51,7 +49,6 @@ export default function Dashboard() {
         </select>
       </div>
 
-      {/* Day Filter */}
       <div className="mb-4">
         <label className="mr-2 font-medium">Day Type:</label>
         <select
@@ -64,7 +61,6 @@ export default function Dashboard() {
         </select>
       </div>
 
-      {/* Metric Selection */}
       <div className="mb-6">
         <label className="mr-2 font-medium">Metric:</label>
         <select
@@ -80,7 +76,6 @@ export default function Dashboard() {
         </select>
       </div>
 
-      {/* Bar Chart */}
       {selectedRoute && filteredData.length > 0 && (
         <div className="mb-12 border p-4 rounded-xl shadow">
           <h3 className="text-lg font-semibold mb-4">
@@ -98,7 +93,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Scatter Plot – All routes */}
       <div className="mt-16">
         <h2 className="text-xl font-bold mb-4">Scatter Plot: Delay Ratio vs AQI</h2>
         <ResponsiveContainer width="100%" height={400}>
@@ -129,9 +123,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    </div>
-  );
-}
-
-
