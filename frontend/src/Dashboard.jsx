@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -12,7 +12,7 @@ import {
   ZAxis,
   Legend,
   ReferenceLine,
-  Label
+  Line
 } from "recharts";
 
 export default function Dashboard() {
@@ -63,8 +63,35 @@ export default function Dashboard() {
     return +(sum / filteredData.length).toFixed(2);
   };
 
-  const corrAvgDelay = hourlyData.reduce((acc, curr) => acc + curr.avg_delay_ratio, 0) / hourlyData.length;
-  const corrAvgAqi = hourlyData.reduce((acc, curr) => acc + curr.avg_aqi, 0) / hourlyData.length;
+  const regressionLine = useMemo(() => {
+    if (!hourlyData.length) return null;
+    const x = hourlyData.map(d => d.avg_delay_ratio);
+    const y = hourlyData.map(d => d.avg_aqi);
+    const n = x.length;
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.reduce((acc, val, i) => acc + val * y[i], 0);
+    const sumX2 = x.reduce((acc, val) => acc + val * val, 0);
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    const meanX = sumX / n;
+    const meanY = sumY / n;
+    const rNumerator = x.reduce((acc, val, i) => acc + (val - meanX) * (y[i] - meanY), 0);
+    const rDenominator = Math.sqrt(
+      x.reduce((acc, val) => acc + Math.pow(val - meanX, 2), 0) *
+      y.reduce((acc, val) => acc + Math.pow(val - meanY, 2), 0)
+    );
+    const r = rDenominator ? rNumerator / rDenominator : 0;
+    const minX = Math.min(...x);
+    const maxX = Math.max(...x);
+    return {
+      points: [
+        { x: minX, y: slope * minX + intercept },
+        { x: maxX, y: slope * maxX + intercept }
+      ],
+      r: r.toFixed(2)
+    };
+  }, [hourlyData]);
 
   return (
     <div className="p-4">
@@ -120,9 +147,7 @@ export default function Dashboard() {
             <Tooltip />
             <Legend />
             <Bar dataKey={selectedMetric} fill="#8884d8" />
-            <ReferenceLine y={avgLine(selectedMetric)} stroke="red" strokeDasharray="3 3">
-              <Label position="top" value="Average" />
-            </ReferenceLine>
+            <ReferenceLine y={avgLine(selectedMetric)} stroke="red" strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -149,15 +174,25 @@ export default function Dashboard() {
             <ZAxis type="number" dataKey="route_id" name="Route" range={[100, 300]} />
             <Tooltip cursor={{ strokeDasharray: "3 3" }} />
             <Scatter name="Points" data={hourlyData} fill="#82ca9d" />
-            <ReferenceLine x={corrAvgDelay} stroke="#8884d8" strokeDasharray="3 3" />
-            <ReferenceLine y={corrAvgAqi} stroke="#8884d8" strokeDasharray="3 3" />
+            {regressionLine && (
+              <Line
+                data={regressionLine.points}
+                type="linear"
+                dataKey="y"
+                dot={false}
+                stroke="#ff7300"
+                strokeWidth={2}
+                legendType="line"
+                name={`Linear Fit (r = ${regressionLine.r})`}
+              />
+            )}
+            <Legend />
           </ScatterChart>
         </ResponsiveContainer>
-        <p className="mt-2 text-sm text-gray-600">
-          Reference lines represent overall mean values for delay ratio and AQI.
-        </p>
       </div>
     </div>
   );
 }
-
+    }
+  ]
+}
