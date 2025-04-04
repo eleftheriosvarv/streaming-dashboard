@@ -6,30 +6,17 @@ import {
 
 export default function Dashboard() {
   const [hourlyData, setHourlyData] = useState([]);
-  const [error, setError] = useState(null);
+  const [dayFilter, setDayFilter] = useState("weekday");
 
   useEffect(() => {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
-      .then(res => {
-        console.log("🛰️ Response status:", res.status);
-        if (!res.ok) {
-          throw new Error(`HTTP error ${res.status}`);
-        }
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
         console.log("✅ hourlyData loaded:", data);
         setHourlyData(data);
       })
-      .catch(err => {
-        console.error("❌ Failed to fetch hourly averages:", err);
-        setError("Failed to load data from backend.");
-      });
+      .catch(err => console.error("❌ Failed to fetch hourly averages", err));
   }, []);
-
-  if (error) {
-    return <div className="p-4 text-lg text-red-600">🚨 {error}</div>;
-  }
 
   if (!hourlyData || hourlyData.length === 0) {
     return <div className="p-4 text-lg">⏳ Loading data from backend...</div>;
@@ -38,16 +25,28 @@ export default function Dashboard() {
   // Ομαδοποίηση ανά route_id + day_type
   const grouped = {};
   hourlyData.forEach(item => {
+    if (item.day_type !== dayFilter) return;
     const key = `${item.route_id}-${item.day_type}`;
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(item);
   });
 
-  console.log("📊 grouped data:", grouped);
-
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-6">Hourly Averages per Route (Weekday vs Weekend)</h2>
+      <h2 className="text-2xl font-bold mb-4">Hourly Averages per Route (Weekday vs Weekend)</h2>
+
+      <div className="mb-6">
+        <label htmlFor="day-type-select" className="mr-2 font-medium">Select Day Type:</label>
+        <select
+          id="day-type-select"
+          className="border rounded px-2 py-1"
+          value={dayFilter}
+          onChange={(e) => setDayFilter(e.target.value)}
+        >
+          <option value="weekday">Weekday</option>
+          <option value="weekend">Weekend</option>
+        </select>
+      </div>
 
       {Object.entries(grouped).map(([key, data]) => (
         <div key={key} className="mb-12 border p-4 rounded-xl shadow">
@@ -88,11 +87,12 @@ export default function Dashboard() {
             />
             <ZAxis type="number" dataKey="route_id" name="Route" range={[100, 300]} />
             <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter name="Points" data={hourlyData} fill="#82ca9d" />
+            <Scatter name="Points" data={hourlyData.filter(d => d.day_type === dayFilter)} fill="#82ca9d" />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
+
 
