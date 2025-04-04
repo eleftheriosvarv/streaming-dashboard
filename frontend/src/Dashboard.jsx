@@ -1,63 +1,73 @@
 import React, { useEffect, useState } from 'react';
+import {
+  LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+  ScatterChart, Scatter, ZAxis
+} from 'recharts';
 
 export default function Dashboard() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [hourlyData, setHourlyData] = useState([]);
 
   useEffect(() => {
-    fetch('https://backend-dashboard-26rc.onrender.com/latest')
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+    fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
+      .then(res => res.json())
+      .then(data => setHourlyData(data))
+      .catch(err => console.error("Failed to fetch hourly averages", err));
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  // Ομαδοποίηση ανά route_id + day_type
+  const grouped = {};
+  hourlyData.forEach(item => {
+    const key = `${item.route_id}-${item.day_type}`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(item);
+  });
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Latest Route Data</h1>
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2">Route ID</th>
-              <th className="border px-4 py-2">Start Location</th>
-              <th className="border px-4 py-2">End Location</th>
-              <th className="border px-4 py-2">Start Latitude</th>
-              <th className="border px-4 py-2">Start Longitude</th>
-              <th className="border px-4 py-2">Driving Time</th>
-              <th className="border px-4 py-2">Transit Time</th>
-              <th className="border px-4 py-2">AQI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item) => (
-              <tr key={item.route_id}>
-                <td className="border px-4 py-2">{item.route_id}</td>
-                <td className="border px-4 py-2">{item.start_location}</td>
-                <td className="border px-4 py-2">{item.end_location}</td>
-                <td className="border px-4 py-2">{item.start_latitude}</td>
-                <td className="border px-4 py-2">{item.start_longitude}</td>
-                <td className="border px-4 py-2">{item.driving_travel_time}</td>
-                <td className="border px-4 py-2">{item.transit_travel_time}</td>
-                <td className="border px-4 py-2">{item.aqi}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h2 className="text-2xl font-bold mb-6">Hourly Averages per Route (Weekday vs Weekend)</h2>
+
+      {Object.entries(grouped).map(([key, data]) => (
+        <div key={key} className="mb-12 border p-4 rounded-xl shadow">
+          <h3 className="text-lg font-semibold mb-4">Route {key.replace('-', ' - ')}</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="avg_driving_travel_time" stroke="#1f77b4" name="Driving Time" />
+              <Line type="monotone" dataKey="avg_transit_travel_time" stroke="#ff7f0e" name="Transit Time" />
+              <Line type="monotone" dataKey="avg_travel_time_difference" stroke="#2ca02c" name="Time Diff" />
+              <Line type="monotone" dataKey="avg_delay_ratio" stroke="#d62728" name="Delay Ratio" />
+              <Line type="monotone" dataKey="avg_aqi" stroke="#9467bd" name="AQI" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ))}
+
+      <div className="mt-16">
+        <h2 className="text-xl font-bold mb-4">Scatter Plot: Delay Ratio vs AQI</h2>
+        <ResponsiveContainer width="100%" height={400}>
+          <ScatterChart>
+            <CartesianGrid />
+            <XAxis
+              type="number"
+              dataKey="avg_delay_ratio"
+              name="Delay Ratio"
+              label={{ value: "Avg Delay Ratio", position: "insideBottom", offset: -5 }}
+            />
+            <YAxis
+              type="number"
+              dataKey="avg_aqi"
+              name="AQI"
+              label={{ value: "Avg AQI", angle: -90, position: "insideLeft" }}
+            />
+            <ZAxis type="number" dataKey="route_id" name="Route" range={[100, 300]} />
+            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Scatter name="Points" data={hourlyData} fill="#82ca9d" />
+          </ScatterChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
