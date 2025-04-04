@@ -101,11 +101,11 @@ def get_hourly_averages():
                     ELSE 'weekday'
                 END AS day_type,
                 EXTRACT(HOUR FROM timestamp) AS hour,
-                ROUND(AVG(driving_travel_time), 2) AS avg_driving_travel_time,
-                ROUND(AVG(transit_travel_time), 2) AS avg_transit_travel_time,
-                ROUND(AVG(travel_time_difference), 2) AS avg_travel_time_difference,
-                ROUND(AVG(delay_ratio), 2) AS avg_delay_ratio,
-                ROUND(AVG(aqi), 2) AS avg_aqi
+                ROUND(AVG(driving_travel_time)::numeric, 2) AS avg_driving_travel_time,
+                ROUND(AVG(transit_travel_time)::numeric, 2) AS avg_transit_travel_time,
+                ROUND(AVG(travel_time_difference)::numeric, 2) AS avg_travel_time_difference,
+                ROUND(AVG(delay_ratio)::numeric, 2) AS avg_delay_ratio,
+                ROUND(AVG(aqi)::numeric, 2) AS avg_aqi
             FROM travel_updates
             GROUP BY route_id, day_type, hour
             ORDER BY route_id, day_type, hour;
@@ -118,15 +118,16 @@ def get_hourly_averages():
                 route_id=row["route_id"],
                 day_type=row["day_type"],
                 hour=int(row["hour"]),
-                avg_driving_travel_time=row["avg_driving_travel_time"],
-                avg_transit_travel_time=row["avg_transit_travel_time"],
-                avg_travel_time_difference=row["avg_travel_time_difference"],
-                avg_delay_ratio=row["avg_delay_ratio"],
-                avg_aqi=row["avg_aqi"]
+                avg_driving_travel_time=float(row["avg_driving_travel_time"]),
+                avg_transit_travel_time=float(row["avg_transit_travel_time"]),
+                avg_travel_time_difference=float(row["avg_travel_time_difference"]),
+                avg_delay_ratio=float(row["avg_delay_ratio"]),
+                avg_aqi=float(row["avg_aqi"])
             )
             for row in rows
         ]
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
