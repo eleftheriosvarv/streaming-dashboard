@@ -1,14 +1,15 @@
 from typing import List
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
 import psycopg2.extras
 import os
 import datetime
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://frontend-dashboard-fyjc.onrender.com"],
@@ -17,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database config
+# --- DB config ---
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "your-host"),
     "dbname": os.getenv("DB_NAME", "your-db"),
@@ -29,8 +30,7 @@ DB_CONFIG = {
 def get_db_connection():
     return psycopg2.connect(cursor_factory=psycopg2.extras.DictCursor, **DB_CONFIG)
 
-# --------- MODELS ---------
-
+# --- Models ---
 class TravelUpdate(BaseModel):
     route_id: int
     timestamp: datetime.datetime
@@ -38,11 +38,11 @@ class TravelUpdate(BaseModel):
     end_location: str
     start_latitude: float
     start_longitude: float
-    driving_travel_time: int
-    transit_travel_time: int
-    travel_time_difference: int
+    driving_travel_time: float
+    transit_travel_time: float
+    travel_time_difference: float
     delay_ratio: float
-    aqi: int
+    aqi: float
 
 class HourlyAverage(BaseModel):
     route_id: int
@@ -54,8 +54,7 @@ class HourlyAverage(BaseModel):
     avg_delay_ratio: float
     avg_aqi: float
 
-# --------- ROUTES ---------
-
+# --- Endpoints ---
 @app.get("/latest", response_model=List[TravelUpdate])
 def get_latest_updates():
     try:
@@ -75,18 +74,19 @@ def get_latest_updates():
                 timestamp=row["timestamp"],
                 start_location=row["start_location"],
                 end_location=row["end_location"],
-                start_latitude=round(row["start_latitude"], 2),
-                start_longitude=round(row["start_longitude"], 2),
-                driving_travel_time=row["driving_travel_time"],
-                transit_travel_time=row["transit_travel_time"],
-                travel_time_difference=row["travel_time_difference"],
-                delay_ratio=round(row["delay_ratio"], 2),
-                aqi=row["aqi"]
+                start_latitude=row["start_latitude"],
+                start_longitude=row["start_longitude"],
+                driving_travel_time=round(float(row["driving_travel_time"]), 2),
+                transit_travel_time=round(float(row["transit_travel_time"]), 2),
+                travel_time_difference=round(float(row["travel_time_difference"]), 2),
+                delay_ratio=round(float(row["delay_ratio"]), 2),
+                aqi=round(float(row["aqi"]), 2)
             )
             for row in rows
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/hourly_averages", response_model=List[HourlyAverage])
 def get_hourly_averages():
@@ -118,11 +118,11 @@ def get_hourly_averages():
                 route_id=row["route_id"],
                 day_type=row["day_type"],
                 hour=int(row["hour"]),
-                avg_driving_travel_time=float(row["avg_driving_travel_time"]),
-                avg_transit_travel_time=float(row["avg_transit_travel_time"]),
-                avg_travel_time_difference=float(row["avg_travel_time_difference"]),
-                avg_delay_ratio=float(row["avg_delay_ratio"]),
-                avg_aqi=float(row["avg_aqi"])
+                avg_driving_travel_time=round(float(row["avg_driving_travel_time"]), 2),
+                avg_transit_travel_time=round(float(row["avg_transit_travel_time"]), 2),
+                avg_travel_time_difference=round(float(row["avg_travel_time_difference"]), 2),
+                avg_delay_ratio=round(float(row["avg_delay_ratio"]), 2),
+                avg_aqi=round(float(row["avg_aqi"]), 2)
             )
             for row in rows
         ]
