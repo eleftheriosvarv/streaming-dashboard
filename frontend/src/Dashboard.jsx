@@ -6,16 +6,30 @@ import {
 
 export default function Dashboard() {
   const [hourlyData, setHourlyData] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
-      .then(res => res.json())
+      .then(res => {
+        console.log("🛰️ Response status:", res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP error ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         console.log("✅ hourlyData loaded:", data);
         setHourlyData(data);
       })
-      .catch(err => console.error("❌ Failed to fetch hourly averages", err));
+      .catch(err => {
+        console.error("❌ Failed to fetch hourly averages:", err);
+        setError("Failed to load data from backend.");
+      });
   }, []);
+
+  if (error) {
+    return <div className="p-4 text-lg text-red-600">🚨 {error}</div>;
+  }
 
   if (!hourlyData || hourlyData.length === 0) {
     return <div className="p-4 text-lg">⏳ Loading data from backend...</div>;
