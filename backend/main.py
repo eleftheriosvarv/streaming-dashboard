@@ -1,156 +1,126 @@
+from typing import List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
 import psycopg2
+import psycopg2.extras
 import os
 import datetime
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# 👇 Πρόσθεσε αυτά πριν από οποιοδήποτε endpoint
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://frontend-dashboard-fyjc.onrender.com"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app = FastAPI()
-
-# --- Database config ---
+# Database config
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "your-db-host"),
-    "dbname": os.getenv("DB_NAME", "your-db-name"),
-    "user": os.getenv("DB_USER", "your-db-user"),
-    "password": os.getenv("DB_PASS", "your-db-password"),
+    "host": os.getenv("DB_HOST", "your-host"),
+    "dbname": os.getenv("DB_NAME", "your-db"),
+    "user": os.getenv("DB_USER", "your-user"),
+    "password": os.getenv("DB_PASS", "your-pass"),
     "port": os.getenv("DB_PORT", "5432")
 }
 
-# --- Models ---
+def get_db_connection():
+    return psycopg2.connect(cursor_factory=psycopg2.extras.DictCursor, **DB_CONFIG)
+
+# --------- MODELS ---------
+
 class TravelUpdate(BaseModel):
-    timestamp: datetime.datetime
     route_id: int
-    aqi: int
-    delay_ratio: float
-    driving_travel_time: int
-    transit_travel_time: int
+    timestamp: datetime.datetime
     start_location: str
     end_location: str
     start_latitude: float
     start_longitude: float
+    driving_travel_time: int
+    transit_travel_time: int
+    travel_time_difference: int
+    delay_ratio: float
+    aqi: int
 
-class Averages(BaseModel):
-    avg_aqi: float
+class HourlyAverage(BaseModel):
+    route_id: int
+    day_type: str
+    hour: int
+    avg_driving_travel_time: float
+    avg_transit_travel_time: float
+    avg_travel_time_difference: float
     avg_delay_ratio: float
-    avg_driving_time: float
-    avg_transit_time: float
+    avg_aqi: float
 
-class StartPointData(BaseModel):
-    start_latitude: float
-    start_longitude: float
-    start_location: str
-    routes_data: List[Dict[str, Any]]
+# --------- ROUTES ---------
 
-# --- DB utility ---
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
-# --- API Routes ---
-@app.get("/latest", response_model=TravelUpdate)
-def get_latest_update():
+@app.get("/latest", response_model=List[TravelUpdate])
+def get_latest_updates():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
-            SELECT timestamp, route_id, aqi, delay_ratio, driving_travel_time, transit_travel_time, start_location, end_location
+            SELECT DISTINCT ON (route_id) *
             FROM travel_updates
-            ORDER BY timestamp DESC
-            LIMIT 1;
+            ORDER BY route_id, timestamp DESC;
         """)
-        row = cur.fetchone()
+        rows = cur.fetchall()
         conn.close()
 
-        if not row:
-            raise HTTPException(status_code=404, detail="No data found")
-
-        return TravelUpdate(
-            timestamp=row[0], route_id=row[1], aqi=row[2], delay_ratio=row[3],
-            driving_travel_time=row[4], transit_travel_time=row[5],
-            start_location=row[6], end_location=row[7]
-        )
-
+        return [
+            TravelUpdate(
+                route_id=row["route_id"],
+                timestamp=row["timestamp"],
+                start_location=row["start_location"],
+                end_location=row["end_location"],
+                start_latitude=row["start_latitude"],
+                start_longitude=row["start_longitude"],
+                driving_travel_time=row["driving_travel_time"],
+                transit_travel_time=row["transit_travel_time"],
+                travel_time_difference=row["travel_time_difference"],
+                delay_ratio=row["delay_ratio"],
+                aqi=row["aqi"]
+            )
+            for row in rows
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/averages", response_model=Averages)
-def get_averages():
+@app.get("/hourly_averages", response_model=List[HourlyAverage])
+def get_hourly_averages():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
             SELECT 
-                AVG(aqi), 
-                AVG(delay_ratio), 
-                AVG(driving_travel_time), 
-                AVG(transit_travel_time)
-            FROM travel_updates;
+                route_id,
+                CASE 
+                    WHEN EXTRACT(DOW FROM timestamp) IN (0, 6) THEN 'weekend'
+                    ELSE 'weekday'
+                END AS day_type,
+                EXTRACT(HOUR FROM timestamp) AS hour,
+                AVG(driving_travel_time) AS avg_driving_travel_time,
+                AVG(transit_travel_time) AS avg_transit_travel_time,
+                AVG(travel_time_difference) AS avg_travel_time_difference,
+                AVG(delay_ratio) AS avg_delay_ratio,
+                AVG(aqi) AS avg_aqi
+            FROM travel_updates
+            GROUP BY route_id, day_type, hour
+            ORDER BY route_id, day_type, hour;
         """)
-        row = cur.fetchone()
+        rows = cur.fetchall()
         conn.close()
 
-        return Averages(
-            avg_aqi=row[0],
-            avg_delay_ratio=row[1],
-            avg_driving_time=row[2],
-            avg_transit_time=row[3]
-        )
+        return [
+            HourlyAverage(
+                route_id=row["route_id"],
+                day_type=row["day_type"],
+                hour=int(row["hour"]),
+                avg_driving_travel_time=row["avg_driving_travel_time"],
+                avg_transit_travel_time=row["avg_transit_travel_time"],
+                avg_travel_time_difference=row["avg_travel_time_difference"],
+                avg_delay_ratio=row["avg_delay_ratio"],
+                avg_aqi=row["avg_aqi"]
+            )
+            for row in rows
+        ]
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/latest_per_start_point", response_model=List[StartPointData])
-def get_latest_per_start_point():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Get unique start points
-        cur.execute("""
-            SELECT DISTINCT start_latitude, start_longitude, start_location
-            FROM travel_updates;
-        """)
-        start_points = cur.fetchall()
-
-        results = []
-
-        for lat, lon, loc in start_points:
-            cur.execute("""
-                SELECT driving_travel_time, transit_travel_time, aqi
-                FROM travel_updates
-                WHERE start_latitude = %s AND start_longitude = %s
-                ORDER BY timestamp DESC;
-            """, (lat, lon))
-            rows = cur.fetchall()
-
-            routes_data = [
-                {
-                    "driving_travel_time": row[0],
-                    "transit_travel_time": row[1],
-                    "aqi": row[2]
-                }
-                for row in rows
-            ]
-
-            results.append({
-                "start_latitude": lat,
-                "start_longitude": lon,
-                "start_location": loc,
-                "routes_data": routes_data
-            })
-
-        conn.close()
         return results
 
     except Exception as e:
