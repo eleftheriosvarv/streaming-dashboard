@@ -4,6 +4,18 @@ from typing import List, Dict, Any
 import psycopg2
 import os
 import datetime
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+# 👇 Πρόσθεσε αυτά πριν από οποιοδήποτε endpoint
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://frontend-dashboard-fyjc.onrender.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app = FastAPI()
 
