@@ -31,13 +31,15 @@ DB_CONFIG = {
 # --- Models ---
 class TravelUpdate(BaseModel):
     timestamp: datetime.datetime
-    route_id: str
+    route_id: int
     aqi: int
     delay_ratio: float
     driving_travel_time: int
     transit_travel_time: int
     start_location: str
     end_location: str
+    start_latitude: float
+    start_longitude: float
 
 class Averages(BaseModel):
     avg_aqi: float
