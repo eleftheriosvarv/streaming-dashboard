@@ -10,9 +10,16 @@ export default function Dashboard() {
   useEffect(() => {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
       .then(res => res.json())
-      .then(data => setHourlyData(data))
-      .catch(err => console.error("Failed to fetch hourly averages", err));
+      .then(data => {
+        console.log("✅ hourlyData loaded:", data);
+        setHourlyData(data);
+      })
+      .catch(err => console.error("❌ Failed to fetch hourly averages", err));
   }, []);
+
+  if (!hourlyData || hourlyData.length === 0) {
+    return <div className="p-4 text-lg">⏳ Loading data from backend...</div>;
+  }
 
   // Ομαδοποίηση ανά route_id + day_type
   const grouped = {};
@@ -21,6 +28,8 @@ export default function Dashboard() {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(item);
   });
+
+  console.log("📊 grouped data:", grouped);
 
   return (
     <div className="p-4">
