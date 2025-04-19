@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [todayData, setTodayData] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState('');
   const [selectedDayType, setSelectedDayType] = useState('');
-  const [selectedMetric, setSelectedMetric] = useState('avg_driving_travel_time');
+  const [selectedMetric, setSelectedMetric] = useState('');
 
   useEffect(() => {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
@@ -48,6 +48,9 @@ export default function Dashboard() {
         d => d.route_id === parseInt(selectedRoute) && d.day_type === selectedDayType
       );
 
+  const showTable = !selectedRoute && !selectedDayType && !selectedMetric;
+  const showChart = selectedRoute && selectedDayType && selectedMetric;
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Routes</h1>
@@ -81,6 +84,7 @@ export default function Dashboard() {
           value={selectedMetric}
           onChange={e => setSelectedMetric(e.target.value)}
         >
+          <option value="">Select metric</option>
           <option value="avg_driving_travel_time">Driving Time</option>
           <option value="avg_transit_travel_time">Transit Time</option>
           <option value="avg_travel_time_difference">Time Difference</option>
@@ -89,7 +93,7 @@ export default function Dashboard() {
         </select>
       </div>
 
-      {!selectedRoute && !selectedDayType && !selectedMetric && (
+      {showTable && (
         <>
           <h2 className="text-lg font-semibold mt-8 mb-2">Latest Route Updates</h2>
           <div className="overflow-x-auto mb-12">
@@ -127,7 +131,7 @@ export default function Dashboard() {
         </>
       )}
 
-      {selectedRoute && filteredData.length > 0 && (
+      {showChart && filteredData.length > 0 && (
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -139,9 +143,16 @@ export default function Dashboard() {
           </BarChart>
         </ResponsiveContainer>
       )}
+
+      {showChart && filteredData.length === 0 && (
+        <p className="text-center text-gray-600 mt-8">
+          No data available for this route and day type.
+        </p>
+      )}
     </div>
   );
 }
+
 
 
       
