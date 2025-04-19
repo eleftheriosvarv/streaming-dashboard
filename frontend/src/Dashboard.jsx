@@ -6,6 +6,7 @@ import {
 export default function Dashboard() {
   const [hourlyData, setHourlyData] = useState([]);
   const [latestData, setLatestData] = useState([]);
+  const [todayData, setTodayData] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState('');
   const [selectedDayType, setSelectedDayType] = useState('weekday');
   const [selectedMetric, setSelectedMetric] = useState('avg_driving_travel_time');
@@ -22,6 +23,15 @@ export default function Dashboard() {
       .catch(err => console.error("Failed to fetch latest data", err));
   }, []);
 
+  useEffect(() => {
+    if ((selectedDayType === 'today' || selectedDayType === 'yesterday') && selectedRoute) {
+      fetch(`https://backend-dashboard-26rc.onrender.com/today_data?route_id=${selectedRoute}&day_type=${selectedDayType}`)
+        .then(res => res.json())
+        .then(data => setTodayData(data))
+        .catch(err => console.error("Failed to fetch today/yesterday data", err));
+    }
+  }, [selectedDayType, selectedRoute]);
+
   const groupedRoutes = {};
   latestData.forEach(item => {
     groupedRoutes[item.route_id] = `${item.start_location} - ${item.end_location}`;
@@ -32,9 +42,11 @@ export default function Dashboard() {
     label: `Route ${routeId}: ${label}`
   }));
 
-  const filteredData = hourlyData.filter(
-    d => d.route_id === parseInt(selectedRoute) && d.day_type === selectedDayType
-  );
+  const filteredData = (selectedDayType === 'today' || selectedDayType === 'yesterday')
+    ? todayData
+    : hourlyData.filter(
+        d => d.route_id === parseInt(selectedRoute) && d.day_type === selectedDayType
+      );
 
   return (
     <div className="p-4">
@@ -83,31 +95,29 @@ export default function Dashboard() {
             <table className="w-full border-collapse border-2 border-gray-700">
               <thead>
                 <tr className="bg-gray-200 text-center font-semibold text-sm">
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Route</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Last Update</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Start</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">End</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Driving</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Transit</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Diff</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Delay Ratio</th>
-                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">AQI</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Route</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Last Update</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Start</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">End</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Driving</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Transit</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Diff</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">Delay Ratio</th>
+                  <th className="border-2 border-gray-700 px-3 py-2">AQI</th>
                 </tr>
               </thead>
               <tbody>
                 {latestData.map(row => (
                   <tr key={row.route_id} className="text-sm text-center odd:bg-gray-100">
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.route_id}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">
-                      {new Date(row.timestamp).toLocaleString()}
-                    </td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.start_location}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.end_location}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.driving_travel_time}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.transit_travel_time}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.travel_time_difference}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.delay_ratio}</td>
-                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.aqi}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.route_id}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{new Date(row.timestamp).toLocaleString()}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.start_location}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.end_location}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.driving_travel_time}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.transit_travel_time}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.travel_time_difference}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.delay_ratio}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2">{row.aqi}</td>
                   </tr>
                 ))}
               </tbody>
@@ -131,6 +141,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
       
