@@ -131,3 +131,62 @@ def get_hourly_averages():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/today_data", response_model=List[HourlyAverage])
+def get_today_data(route_id: int, day_type: str):
+    try:
+        now = datetime.datetime.now()
+
+        if day_type == "today":
+            start_time = datetime.datetime(now.year, now.month, now.day)
+        elif day_type == "yesterday":
+            start_time = datetime.datetime(now.year, now.month, now.day) - datetime.timedelta(days=1)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid day_type. Use 'today' or 'yesterday'.")
+
+        end_time = start_time + datetime.timedelta(days=1)
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT 
+                route_id,
+                CASE 
+                    WHEN EXTRACT(DOW FROM timestamp) IN (0, 6) THEN 'weekend'
+                    ELSE 'weekday'
+                END AS day_type,
+                EXTRACT(HOUR FROM timestamp) AS hour,
+                ROUND(AVG(driving_travel_time)::numeric, 2) AS avg_driving_travel_time,
+                ROUND(AVG(transit_travel_time)::numeric, 2) AS avg_transit_travel_time,
+                ROUND(AVG(travel_time_difference)::numeric, 2) AS avg_travel_time_difference,
+                ROUND(AVG(delay_ratio)::numeric, 2) AS avg_delay_ratio,
+                ROUND(AVG(aqi)::numeric, 2) AS avg_aqi
+            FROM travel_updates
+            WHERE route_id = %s
+              AND timestamp >= %s AND timestamp < %s
+            GROUP BY route_id, day_type, hour
+            ORDER BY hour;
+        """, (route_id, start_time, end_time))
+
+        rows = cur.fetchall()
+        conn.close()
+
+        return [
+            HourlyAverage(
+                route_id=row["route_id"],
+                day_type=row["day_type"],
+                hour=int(row["hour"]),
+                avg_driving_travel_time=float(row["avg_driving_travel_time"]),
+                avg_transit_travel_time=float(row["avg_transit_travel_time"]),
+                avg_travel_time_difference=float(row["avg_travel_time_difference"]),
+                avg_delay_ratio=float(row["avg_delay_ratio"]),
+                avg_aqi=float(row["avg_aqi"])
+            )
+            for row in rows
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
