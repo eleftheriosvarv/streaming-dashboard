@@ -1,39 +1,61 @@
-# 🚀 Real-Time Travel Dashboard
+Real-Time Travel and Air Quality Dashboard
 
-Αυτό το project είναι ένα real-time dashboard που:
-- Παρουσιάζει δεδομένα μετακινήσεων (driving/transit) & ατμοσφαιρικής ρύπανσης (AQI)
-- Εμφανίζει δυναμικά γραφήματα και διαδραστικό χάρτη για την Αθήνα
-- Συνδέεται με PostgreSQL βάση σε Google Cloud SQL
+This project is a real-time web application that displays live data on travel times and air quality in Athens. It includes dynamic visualizations and an interactive map to provide a comprehensive view of conditions across different routes in the city.
 
-## 📦 Περιεχόμενα
+Project Structure
 
-- backend/ (FastAPI)
-- frontend/ (React + Recharts + Leaflet)
-- docker-compose.yml
-- README.md
+backend: FastAPI-based API
 
-## 🧰 Τεχνολογίες
-- FastAPI (Python)
-- React, Recharts, Leaflet
-- PostgreSQL
-- Docker
+frontend: React application using Recharts and Leaflet
 
-## 🧪 Εκκίνηση Locally
-1. Ρύθμισε DB env vars στο docker-compose.yml
-2. Τρέξε:
-    docker-compose up --build
-3. Άνοιξε:
-    - Frontend: http://localhost:3000
-    - Backend API: http://localhost:8000/docs
+docker-compose.yml for local development
 
-## 🌐 Deployment
-Μπορεί να γίνει deploy σε Render, GCP Cloud Run, Railway.
+README.md
 
-## 📈 Dashboard
-- Επιλογή route_id + ημέρας
-- 6 γραφήματα (5 bar, 1 scatter)
-- Auto-refresh ανά 10'
-- Χάρτης Αθηνών με 6 μοναδικά start points και τελευταίες τιμές
+Technologies Used
 
-## ✍️ Author
-Built by @eleftheriosvarv
+FastAPI (Python)
+
+React
+
+Recharts
+
+Leaflet
+
+PostgreSQL
+
+Docker
+
+How to Run Locally
+
+Set up your database environment variables in docker-compose.yml
+
+Build and start the containers using: docker-compose up --build
+
+Access the applications at:
+
+Frontend: http://localhost:3000
+
+Backend API: http://localhost:8000/docs
+
+Features
+
+Route selection and day type filters (weekday, weekend, today, yesterday)
+
+Individual bar charts for each metric (driving time, transit time, travel time difference, AQI)
+
+Data auto-refresh every 10 minutes
+
+Interactive map of Athens displaying six unique starting points with the latest values per route
+
+Table view of the latest data update per start point
+
+Clean user interface with conditional rendering based on selected filters
+
+Live Demo
+
+The frontend is available at: https://frontend-dashboard-fyjc.onrender.com/
+
+Author
+
+Developed by Eleftherios Varv
