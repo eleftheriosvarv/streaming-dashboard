@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
 export default function Dashboard() {
@@ -45,11 +45,17 @@ export default function Dashboard() {
   const filteredData = (selectedDayType === 'today' || selectedDayType === 'yesterday')
     ? todayData
     : hourlyData.filter(
-        d => d.route_id === parseInt(selectedRoute) && d.day_type === selectedDayType
+        d => Number(d.route_id) === Number(selectedRoute) && d.day_type === selectedDayType
       );
 
   const showTable = !selectedRoute && !selectedDayType && !selectedMetric;
   const showChart = selectedRoute && selectedDayType && selectedMetric;
+
+  // Debug logs
+  console.log("Selected Route:", selectedRoute);
+  console.log("Selected DayType:", selectedDayType);
+  console.log("Selected Metric:", selectedMetric);
+  console.log("Filtered Data:", filteredData);
 
   return (
     <div className="p-4">
@@ -153,7 +159,4 @@ export default function Dashboard() {
   );
 }
 
-
-
-      
       
