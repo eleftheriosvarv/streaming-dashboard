@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ScatterChart, Scatter, ZAxis, Legend, Line
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 export default function Dashboard() {
@@ -60,6 +59,8 @@ export default function Dashboard() {
         >
           <option value="weekday">Weekday</option>
           <option value="weekend">Weekend</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
         </select>
 
         <label className="mx-2">Metric:</label>
@@ -75,65 +76,45 @@ export default function Dashboard() {
         </select>
       </div>
 
-      <h2 className="text-lg font-semibold mt-8 mb-2">Latest Route Updates</h2>
-      <div className="overflow-x-auto mb-12">
-        <table className="min-w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="border border-gray-300 px-2 py-1">Route</th>
-              <th className="border border-gray-300 px-2 py-1">Last Update</th>
-              <th className="border border-gray-300 px-2 py-1">Start</th>
-              <th className="border border-gray-300 px-2 py-1">End</th>
-              <th className="border border-gray-300 px-2 py-1">Driving</th>
-              <th className="border border-gray-300 px-2 py-1">Transit</th>
-              <th className="border border-gray-300 px-2 py-1">Diff</th>
-              <th className="border border-gray-300 px-2 py-1">Delay Ratio</th>
-              <th className="border border-gray-300 px-2 py-1">AQI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {latestData.map(row => (
-              <tr key={row.route_id} className="text-sm text-center">
-                <td className="border border-gray-300 px-2 py-1">{row.route_id}</td>
-                <td className="border border-gray-300 px-2 py-1">{new Date(row.timestamp).toLocaleString()}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.start_location}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.end_location}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.driving_travel_time}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.transit_travel_time}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.travel_time_difference}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.delay_ratio}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.aqi}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-16">
-        <h2 className="text-xl font-bold mb-4">
-          Correlation between Transit Delay and Air Quality Index
-        </h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <ScatterChart>
-            <CartesianGrid />
-            <XAxis
-              type="number"
-              dataKey="avg_delay_ratio"
-              name="Delay Ratio"
-              label={{ value: "Avg Delay Ratio", position: "insideBottom", offset: -5 }}
-            />
-            <YAxis
-              type="number"
-              dataKey="avg_aqi"
-              name="AQI"
-              label={{ value: "Avg AQI", angle: -90, position: "insideLeft" }}
-            />
-            <ZAxis type="number" dataKey="route_id" name="Route" range={[100, 300]} />
-            <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-            <Scatter name="Points" data={hourlyData} fill="#82ca9d" />
-          </ScatterChart>
-        </ResponsiveContainer>
-      </div>
+      {!selectedRoute && !selectedDayType && !selectedMetric && (
+        <>
+          <h2 className="text-lg font-semibold mt-8 mb-2">Latest Route Updates</h2>
+          <div className="overflow-x-auto mb-12">
+            <table className="w-full border-collapse border-2 border-gray-700">
+              <thead>
+                <tr className="bg-gray-200 text-center font-semibold text-sm">
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Route</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Last Update</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Start</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">End</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Driving</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Transit</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Diff</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">Delay Ratio</th>
+                  <th className="border-2 border-gray-700 px-3 py-2 text-sm text-center">AQI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {latestData.map(row => (
+                  <tr key={row.route_id} className="text-sm text-center odd:bg-gray-100">
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.route_id}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">
+                      {new Date(row.timestamp).toLocaleString()}
+                    </td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.start_location}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.end_location}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.driving_travel_time}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.transit_travel_time}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.travel_time_difference}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.delay_ratio}</td>
+                    <td className="border-2 border-gray-700 px-3 py-2 text-sm text-center">{row.aqi}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {selectedRoute && filteredData.length > 0 && (
         <ResponsiveContainer width="100%" height={300}>
@@ -152,3 +133,5 @@ export default function Dashboard() {
 }
 
 
+      
+      
