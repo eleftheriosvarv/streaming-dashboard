@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [latestData, setLatestData] = useState([]);
   const [todayData, setTodayData] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState('');
-  const [selectedDayType, setSelectedDayType] = useState('weekday');
+  const [selectedDayType, setSelectedDayType] = useState('');
   const [selectedMetric, setSelectedMetric] = useState('avg_driving_travel_time');
 
   useEffect(() => {
@@ -69,6 +69,7 @@ export default function Dashboard() {
           value={selectedDayType}
           onChange={e => setSelectedDayType(e.target.value)}
         >
+          <option value="">Select day type</option>
           <option value="weekday">Weekday</option>
           <option value="weekend">Weekend</option>
           <option value="today">Today</option>
@@ -141,7 +142,6 @@ export default function Dashboard() {
     </div>
   );
 }
-
 
 
       
