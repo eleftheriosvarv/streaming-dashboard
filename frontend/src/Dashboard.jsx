@@ -1,3 +1,5 @@
+import LiveMap from "./components/LiveMap";
+
 import React, { useEffect, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -47,6 +49,8 @@ export default function Dashboard() {
     : hourlyData.filter(
         d => Number(d.route_id) === Number(selectedRoute) && d.day_type === selectedDayType
       );
+
+  {showTable && <LiveMap />}
 
   const showTable = !selectedRoute && !selectedDayType && !selectedMetric;
   const showChart = selectedRoute && selectedDayType && selectedMetric;
