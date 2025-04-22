@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -64,6 +64,9 @@ const LiveMap = () => {
               <Popup>
                 <pre>{popupText}</pre>
               </Popup>
+              <Tooltip direction="right" offset={[10, 0]} opacity={1} permanent>
+                <span style={{ fontSize: "12px" }}>{start}</span>
+              </Tooltip>
             </Marker>
           );
         })}
