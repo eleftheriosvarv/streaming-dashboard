@@ -50,7 +50,6 @@ export default function Dashboard() {
         d => Number(d.route_id) === Number(selectedRoute) && d.day_type === selectedDayType
       );
 
-  {showTable && <LiveMap />}
 
   const showTable = !selectedRoute && !selectedDayType && !selectedMetric;
   const showChart = selectedRoute && selectedDayType && selectedMetric;
@@ -102,7 +101,7 @@ export default function Dashboard() {
           <option value="avg_aqi">AQI</option>
         </select>
       </div>
-
+      {showTable && <LiveMap />}
       {showTable && (
         <>
           <h2 className="text-lg font-semibold mt-8 mb-2">Latest Route Updates</h2>
