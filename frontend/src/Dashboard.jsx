@@ -161,6 +161,17 @@ export default function Dashboard() {
           </BarChart>
         </ResponsiveContainer>
       )}
+      {selectedRoute && showChart && (
+      <div className="flex justify-center mt-6">
+        <img
+          src={`/routes/Route_${selectedRoute}.jpg`}
+          alt={`Route ${selectedRoute}`}
+          className="max-w-full rounded-lg shadow-lg border border-gray-300"
+          /
+      </div>
+        )}
+
+      
 
       {showChart && filteredData.length === 0 && (
         <p className="text-center text-gray-600 mt-8">
