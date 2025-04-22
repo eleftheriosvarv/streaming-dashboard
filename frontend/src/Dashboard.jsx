@@ -63,44 +63,53 @@ export default function Dashboard() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Routes</h1>
+      <div className="mb-4 flex items-center justify-between">
+  <button
+    className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mr-4"
+    onClick={() => window.location.href = "/"}
+  >
+    Home
+  </button>
 
-      <div className="mb-4">
-        <label className="mr-2">Select Route:</label>
-        <select
-          value={selectedRoute}
-          onChange={e => setSelectedRoute(e.target.value)}
-        >
-          <option value="">Select a route</option>
-          {routeOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+  <div className="flex items-center space-x-4">
+    <label className="mx-2">Select Route:</label>
+    <select
+      value={selectedRoute}
+      onChange={(e) => setSelectedRoute(e.target.value)}
+    >
+      <option value="">Select a route</option>
+      {routeOptions.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
 
-        <label className="mx-2">Day Type:</label>
-        <select
-          value={selectedDayType}
-          onChange={e => setSelectedDayType(e.target.value)}
-        >
-          <option value="">Select day type</option>
-          <option value="weekday">Weekday</option>
-          <option value="weekend">Weekend</option>
-          <option value="today">Today</option>
-          <option value="yesterday">Yesterday</option>
-        </select>
+    <label className="mx-2">Day Type:</label>
+    <select
+      value={selectedDayType}
+      onChange={(e) => setSelectedDayType(e.target.value)}
+    >
+      <option value="">Select day type</option>
+      <option value="weekday">Weekday</option>
+      <option value="weekend">Weekend</option>
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+    </select>
 
-        <label className="mx-2">Metric:</label>
-        <select
-          value={selectedMetric}
-          onChange={e => setSelectedMetric(e.target.value)}
-        >
-          <option value="">Select metric</option>
-          <option value="avg_driving_travel_time">Driving Time</option>
-          <option value="avg_transit_travel_time">Transit Time</option>
-          <option value="avg_travel_time_difference">Time Difference</option>
-          <option value="avg_delay_ratio">Delay Ratio</option>
-          <option value="avg_aqi">AQI</option>
-        </select>
-      </div>
+    <label className="mx-2">Metric:</label>
+    <select
+      value={selectedMetric}
+      onChange={(e) => setSelectedMetric(e.target.value)}
+    >
+      <option value="">Select metric</option>
+      <option value="avg_driving_travel_time">Driving Time</option>
+      <option value="avg_transit_travel_time">Transit Time</option>
+      <option value="avg_travel_time_difference">Time Difference</option>
+      <option value="avg_delay_ratio">Delay Ratio</option>
+      <option value="avg_aqi">AQI</option>
+    </select>
+  </div>
+</div>
+
       {showTable && <LiveMap />}
       {showTable && (
         <>
