@@ -167,7 +167,7 @@ export default function Dashboard() {
           src={`/routes/Route_${selectedRoute}.jpg`}
           alt={`Route ${selectedRoute}`}
           className="max-w-full rounded-lg shadow-lg border border-gray-300"
-          /
+          />
       </div>
         )}
 
