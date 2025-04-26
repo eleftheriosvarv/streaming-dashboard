@@ -7,6 +7,7 @@ import {
 import { Scatter } from 'react-chartjs-2';
 import { Chart, registerables } from 'chart.js';
 import axios from 'axios';
+import regression from 'regression';
 
 Chart.register(...registerables);
 
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [selectedStartLocation, setSelectedStartLocation] = useState('');
   const [selectedCorrelationType, setSelectedCorrelationType] = useState('');
   const [correlationData, setCorrelationData] = useState({ delay_ratio: [], aqi: [] });
+  const [loadingCorrelation, setLoadingCorrelation] = useState(false);
 
   useEffect(() => {
     fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
@@ -49,6 +51,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (selectedStartLocation && selectedCorrelationType) {
+      setLoadingCorrelation(true);
       axios.get("https://backend-dashboard-26rc.onrender.com/correlation_data", {
         params: {
           start_location: selectedStartLocation,
@@ -56,7 +59,8 @@ export default function Dashboard() {
         }
       })
         .then(res => setCorrelationData(res.data))
-        .catch(err => console.error("Failed to fetch correlation data", err));
+        .catch(err => console.error("Failed to fetch correlation data", err))
+        .finally(() => setLoadingCorrelation(false));
     }
   }, [selectedStartLocation, selectedCorrelationType]);
 
@@ -86,6 +90,14 @@ export default function Dashboard() {
       backgroundColor: 'rgba(255, 99, 132, 0.6)',
     }]
   };
+
+  const regressionResult = correlationData.delay_ratio.length > 1
+    ? regression.linear(correlationData.delay_ratio.map((x, i) => [x, correlationData.aqi[i]]))
+    : null;
+
+  const regressionLine = regressionResult ? regressionResult.points.map(([x, y]) => ({ x, y })) : [];
+
+  const rSquared = regressionResult ? regressionResult.r2.toFixed(3) : null;
 
   return (
     <div className="p-4">
@@ -129,33 +141,15 @@ export default function Dashboard() {
       </div>
 
       {showTable && <LiveMap />}
-      {showTable && (
-        <>
-          {/* Existing table content unchanged */}
-        </>
-      )}
 
-      {showChart && filteredData.length > 0 && (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
+      {loadingCorrelation && <p>Loading correlation data...</p>}
 
-      {selectedStartLocation && selectedCorrelationType && correlationData.delay_ratio.length > 0 && (
+      {selectedStartLocation && selectedCorrelationType && correlationData.delay_ratio.length > 1 && (
         <div className="mt-8">
           <Scatter data={scatterChartData} />
+          <p className="mt-2 font-semibold">R² = {rSquared}</p>
         </div>
       )}
     </div>
   );
 }
-
-
-      
