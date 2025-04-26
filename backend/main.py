@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 import os
 import datetime
+import pandas as pd
 
 app = FastAPI()
 
@@ -69,24 +70,11 @@ def get_latest_updates():
         conn.close()
 
         return [
-            TravelUpdate(
-                route_id=row["route_id"],
-                timestamp=row["timestamp"],
-                start_location=row["start_location"],
-                end_location=row["end_location"],
-                start_latitude=row["start_latitude"],
-                start_longitude=row["start_longitude"],
-                driving_travel_time=round(float(row["driving_travel_time"]), 2),
-                transit_travel_time=round(float(row["transit_travel_time"]), 2),
-                travel_time_difference=round(float(row["travel_time_difference"]), 2),
-                delay_ratio=round(float(row["delay_ratio"]), 2),
-                aqi=round(float(row["aqi"]), 2)
-            )
+            TravelUpdate(**row)
             for row in rows
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/hourly_averages", response_model=List[HourlyAverage])
 def get_hourly_averages():
@@ -113,80 +101,55 @@ def get_hourly_averages():
         rows = cur.fetchall()
         conn.close()
 
-        return [
-            HourlyAverage(
-                route_id=row["route_id"],
-                day_type=row["day_type"],
-                hour=int(row["hour"]),
-                avg_driving_travel_time=round(float(row["avg_driving_travel_time"]), 2),
-                avg_transit_travel_time=round(float(row["avg_transit_travel_time"]), 2),
-                avg_travel_time_difference=round(float(row["avg_travel_time_difference"]), 2),
-                avg_delay_ratio=round(float(row["avg_delay_ratio"]), 2),
-                avg_aqi=round(float(row["avg_aqi"]), 2)
-            )
-            for row in rows
-        ]
-
+        return [HourlyAverage(**row) for row in rows]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/today_data", response_model=List[HourlyAverage])
-def get_today_data(route_id: int, day_type: str):
+@app.get("/start_locations")
+def get_start_locations():
     try:
-        now = datetime.datetime.now()
-
-        if day_type == "today":
-            start_time = datetime.datetime(now.year, now.month, now.day)
-        elif day_type == "yesterday":
-            start_time = datetime.datetime(now.year, now.month, now.day) - datetime.timedelta(days=1)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid day_type. Use 'today' or 'yesterday'.")
-
-        end_time = start_time + datetime.timedelta(days=1)
-
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
-            SELECT 
-                route_id,
-                CASE 
-                    WHEN EXTRACT(DOW FROM timestamp) IN (0, 6) THEN 'weekend'
-                    ELSE 'weekday'
-                END AS day_type,
-                EXTRACT(HOUR FROM timestamp) AS hour,
-                ROUND(AVG(driving_travel_time)::numeric, 2) AS avg_driving_travel_time,
-                ROUND(AVG(transit_travel_time)::numeric, 2) AS avg_transit_travel_time,
-                ROUND(AVG(travel_time_difference)::numeric, 2) AS avg_travel_time_difference,
-                ROUND(AVG(delay_ratio)::numeric, 2) AS avg_delay_ratio,
-                ROUND(AVG(aqi)::numeric, 2) AS avg_aqi
+            SELECT DISTINCT start_location
             FROM travel_updates
-            WHERE route_id = %s
-              AND timestamp >= %s AND timestamp < %s
-            GROUP BY route_id, day_type, hour
-            ORDER BY hour;
-        """, (route_id, start_time, end_time))
-
+            WHERE start_location IS NOT NULL
+            ORDER BY start_location;
+        """)
         rows = cur.fetchall()
         conn.close()
-
-        return [
-            HourlyAverage(
-                route_id=row["route_id"],
-                day_type=row["day_type"],
-                hour=int(row["hour"]),
-                avg_driving_travel_time=float(row["avg_driving_travel_time"]),
-                avg_transit_travel_time=float(row["avg_transit_travel_time"]),
-                avg_travel_time_difference=float(row["avg_travel_time_difference"]),
-                avg_delay_ratio=float(row["avg_delay_ratio"]),
-                avg_aqi=float(row["avg_aqi"])
-            )
-            for row in rows
-        ]
-
+        start_locations = [row["start_location"] for row in rows]
+        return {"start_locations": start_locations}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/correlation_data")
+def get_correlation_data(start_location: str, type: str):
+    try:
+        conn = get_db_connection()
+        df = pd.read_sql("SELECT delay_ratio, aqi, timestamp FROM travel_updates WHERE start_location = %s ORDER BY timestamp", conn, params=(start_location,))
+        conn.close()
 
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        matched = []
+
+        if type == "same_minute":
+            df['rounded'] = df['timestamp'].dt.floor('min')
+            merged = pd.merge(df[['rounded', 'delay_ratio']], df[['rounded', 'aqi']], on='rounded')
+            matched = merged[['delay_ratio', 'aqi']].dropna().to_dict(orient='records')
+
+        elif type in ["plus_one_hour", "plus_two_hours"]:
+            offset = 60 if type == "plus_one_hour" else 120
+            for idx, row in df.iterrows():
+                target_min = row['timestamp'] + pd.Timedelta(minutes=offset-20)
+                target_max = row['timestamp'] + pd.Timedelta(minutes=offset+20)
+                potential = df[(df['timestamp'] >= target_min) & (df['timestamp'] <= target_max)]
+                if not potential.empty:
+                    matched.append({"delay_ratio": row['delay_ratio'], "aqi": potential.iloc[0]['aqi']})
+
+        return {"delay_ratio": [m["delay_ratio"] for m in matched], "aqi": [m["aqi"] for m in matched]}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
