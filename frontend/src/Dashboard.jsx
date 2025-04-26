@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, Line
 } from 'recharts';
-import { ScatterChart, Scatter, Line, XAxis as XAxisScatter, YAxis as YAxisScatter, CartesianGrid as CartesianGridScatter, Tooltip as TooltipScatter } from 'recharts';
 import regression from 'regression';
 import LiveMap from './components/LiveMap';
 
 export default function Dashboard() {
+  const [tab, setTab] = useState('home');
+
   const [hourlyData, setHourlyData] = useState([]);
   const [latestData, setLatestData] = useState([]);
   const [todayData, setTodayData] = useState([]);
@@ -70,10 +71,6 @@ export default function Dashboard() {
         d => Number(d.route_id) === Number(selectedRoute) && d.day_type === selectedDayType
       );
 
-  const showCorrelationChart = selectedStartLocation && selectedCorrelationType;
-  const showChart = selectedRoute && selectedDayType && selectedMetric;
-  const showTable = !showChart && !showCorrelationChart;
-
   let scatterData = [];
   if (correlationData.delay_ratio.length > 0 && correlationData.aqi.length > 0) {
     scatterData = correlationData.delay_ratio.map((val, idx) => ({
@@ -86,128 +83,23 @@ export default function Dashboard() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Routes</h1>
-      <div className="mb-4 flex flex-wrap items-center justify-between">
-        <button
-          className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mr-4"
-          onClick={() => window.location.href = "/"}
-        >
+      <h1 className="text-2xl font-bold mb-4">Routes Dashboard</h1>
+
+      {/* Tabs */}
+      <div className="flex space-x-4 mb-6">
+        <button onClick={() => setTab('home')} className={`px-4 py-2 rounded ${tab === 'home' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
           Home
         </button>
-
-        <div className="flex items-center space-x-4">
-          <label className="mx-2">Select Start Location:</label>
-          <select
-            value={selectedStartLocation}
-            onChange={(e) => setSelectedStartLocation(e.target.value)}
-          >
-            <option value="">Select Start Location</option>
-            {startLocations.map((loc, idx) => (
-              <option key={idx} value={loc}>{loc}</option>
-            ))}
-          </select>
-
-          <label className="mx-2">Correlation Type:</label>
-          <select
-            value={selectedCorrelationType}
-            onChange={(e) => setSelectedCorrelationType(e.target.value)}
-          >
-            <option value="same_minute">Same Minute</option>
-            <option value="plus_one_hour">1hr Delay</option>
-            <option value="plus_two_hours">2hr Delay</option>
-          </select>
-
-          <label className="mx-2">Select Route:</label>
-          <select
-            value={selectedRoute}
-            onChange={(e) => setSelectedRoute(e.target.value)}
-          >
-            <option value="">Select a route</option>
-            {routeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-
-          <label className="mx-2">Day Type:</label>
-          <select
-            value={selectedDayType}
-            onChange={(e) => setSelectedDayType(e.target.value)}
-          >
-            <option value="">Select day type</option>
-            <option value="weekday">Weekday</option>
-            <option value="weekend">Weekend</option>
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-          </select>
-
-          <label className="mx-2">Metric:</label>
-          <select
-            value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value)}
-          >
-            <option value="">Select metric</option>
-            <option value="avg_driving_travel_time">Driving Time</option>
-            <option value="avg_transit_travel_time">Transit Time</option>
-            <option value="avg_travel_time_difference">Time Difference</option>
-            <option value="avg_delay_ratio">Delay Ratio</option>
-            <option value="avg_aqi">AQI</option>
-          </select>
-        </div>
+        <button onClick={() => setTab('correlation')} className={`px-4 py-2 rounded ${tab === 'correlation' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
+          Correlation
+        </button>
+        <button onClick={() => setTab('routes')} className={`px-4 py-2 rounded ${tab === 'routes' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
+          Routes
+        </button>
       </div>
 
-      {showCorrelationChart && scatterData.length > 0 && (
-        <div className="my-8">
-          <h2 className="text-lg font-semibold mb-4">Correlation: Delay Ratio vs AQI</h2>
-          <ResponsiveContainer width="100%" height={400}>
-            <ScatterChart>
-              <CartesianGridScatter />
-              <XAxisScatter type="number" dataKey="delay_ratio" name="Delay Ratio" />
-              <YAxisScatter type="number" dataKey="aqi" name="AQI" />
-              <TooltipScatter cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter name="Data" data={scatterData} fill="#8884d8" />
-              {regressionResult && (
-                <Line
-                  type="linear"
-                  dataKey="delay_ratio"
-                  stroke="#ff7300"
-                  dot={false}
-                  legendType="none"
-                  data={scatterData.map(d => ({
-                    delay_ratio: d.delay_ratio,
-                    aqi: regressionResult.predict(d.delay_ratio)[1]
-                  }))}
-                />
-              )}
-            </ScatterChart>
-          </ResponsiveContainer>
-          {regressionResult && (
-            <p className="text-center mt-4 font-semibold">
-              R²: {regressionResult.r2.toFixed(2)}
-            </p>
-          )}
-        </div>
-      )}
-
-      {showChart && filteredData.length > 0 && (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-
-      {showChart && filteredData.length === 0 && (
-        <p className="text-center text-gray-600 mt-8">
-          No data available for this route and day type.
-        </p>
-      )}
-
-      {showTable && (
+      {/* Tab Content */}
+      {tab === 'home' && (
         <>
           <LiveMap />
           <h2 className="text-lg font-semibold mt-8 mb-2">Latest Route Updates</h2>
@@ -245,7 +137,98 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {tab === 'correlation' && (
+        <>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <select value={selectedStartLocation} onChange={(e) => setSelectedStartLocation(e.target.value)} className="p-2 border rounded">
+              <option value="">Select Start Location</option>
+              {startLocations.map((loc, idx) => (
+                <option key={idx} value={loc}>{loc}</option>
+              ))}
+            </select>
+
+            <select value={selectedCorrelationType} onChange={(e) => setSelectedCorrelationType(e.target.value)} className="p-2 border rounded">
+              <option value="same_minute">Same Minute</option>
+              <option value="plus_one_hour">1hr Delay</option>
+              <option value="plus_two_hours">2hr Delay</option>
+            </select>
+          </div>
+
+          {scatterData.length > 0 && (
+            <>
+              <ResponsiveContainer width="100%" height={400}>
+                <ScatterChart>
+                  <CartesianGrid />
+                  <XAxis type="number" dataKey="delay_ratio" name="Delay Ratio" />
+                  <YAxis type="number" dataKey="aqi" name="AQI" />
+                  <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                  <Scatter name="Data" data={scatterData} fill="#8884d8" />
+                  {regressionResult && (
+                    <Line
+                      type="linear"
+                      dataKey="delay_ratio"
+                      stroke="#ff7300"
+                      dot={false}
+                      legendType="none"
+                      data={scatterData.map(d => ({
+                        delay_ratio: d.delay_ratio,
+                        aqi: regressionResult.predict(d.delay_ratio)[1]
+                      }))}
+                    />
+                  )}
+                </ScatterChart>
+              </ResponsiveContainer>
+              <p className="text-center mt-4 font-semibold">R²: {regressionResult?.r2.toFixed(2)}</p>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === 'routes' && (
+        <>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <select value={selectedRoute} onChange={(e) => setSelectedRoute(e.target.value)} className="p-2 border rounded">
+              <option value="">Select Route</option>
+              {routeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+
+            <select value={selectedDayType} onChange={(e) => setSelectedDayType(e.target.value)} className="p-2 border rounded">
+              <option value="">Select Day Type</option>
+              <option value="weekday">Weekday</option>
+              <option value="weekend">Weekend</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+            </select>
+
+            <select value={selectedMetric} onChange={(e) => setSelectedMetric(e.target.value)} className="p-2 border rounded">
+              <option value="">Select Metric</option>
+              <option value="avg_driving_travel_time">Driving Time</option>
+              <option value="avg_transit_travel_time">Transit Time</option>
+              <option value="avg_travel_time_difference">Time Difference</option>
+              <option value="avg_delay_ratio">Delay Ratio</option>
+              <option value="avg_aqi">AQI</option>
+            </select>
+          </div>
+
+          {filteredData.length > 0 && selectedMetric && (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={filteredData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </>
+      )}
     </div>
   );
 }
+
 
