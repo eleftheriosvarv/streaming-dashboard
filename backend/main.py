@@ -1,155 +1,158 @@
-from typing import List
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import psycopg2
-import psycopg2.extras
-import os
-import datetime
-import pandas as pd
+import LiveMap from "./components/LiveMap";
 
-app = FastAPI()
+import React, { useEffect, useState } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
+import { Scatter } from 'react-chartjs-2';
+import { Chart, registerables } from 'chart.js';
+import axios from 'axios';
+import regression from 'regression';
 
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://frontend-dashboard-fyjc.onrender.com"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+Chart.register(...registerables);
 
-# --- DB config ---
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "your-host"),
-    "dbname": os.getenv("DB_NAME", "your-db"),
-    "user": os.getenv("DB_USER", "your-user"),
-    "password": os.getenv("DB_PASS", "your-pass"),
-    "port": os.getenv("DB_PORT", "5432")
+export default function Dashboard() {
+  const [hourlyData, setHourlyData] = useState([]);
+  const [latestData, setLatestData] = useState([]);
+  const [todayData, setTodayData] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState('');
+  const [selectedDayType, setSelectedDayType] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState('');
+  const [startLocations, setStartLocations] = useState([]);
+  const [selectedStartLocation, setSelectedStartLocation] = useState('');
+  const [selectedCorrelationType, setSelectedCorrelationType] = useState('');
+  const [correlationData, setCorrelationData] = useState({ delay_ratio: [], aqi: [] });
+  const [loadingCorrelation, setLoadingCorrelation] = useState(false);
+
+  useEffect(() => {
+    fetch("https://backend-dashboard-26rc.onrender.com/hourly_averages")
+      .then(res => res.json())
+      .then(data => setHourlyData(data))
+      .catch(err => console.error("Failed to fetch hourly averages", err));
+
+    fetch("https://backend-dashboard-26rc.onrender.com/latest")
+      .then(res => res.json())
+      .then(data => setLatestData(data))
+      .catch(err => console.error("Failed to fetch latest data", err));
+
+    axios.get("https://backend-dashboard-26rc.onrender.com/start_locations")
+      .then(res => setStartLocations(res.data.start_locations))
+      .catch(err => console.error("Failed to fetch start locations", err));
+  }, []);
+
+  useEffect(() => {
+    if ((selectedDayType === 'today' || selectedDayType === 'yesterday') && selectedRoute) {
+      fetch(`https://backend-dashboard-26rc.onrender.com/today_data?route_id=${selectedRoute}&day_type=${selectedDayType}`)
+        .then(res => res.json())
+        .then(data => setTodayData(data))
+        .catch(err => console.error("Failed to fetch today/yesterday data", err));
+    }
+  }, [selectedDayType, selectedRoute]);
+
+  useEffect(() => {
+    if (selectedStartLocation && selectedCorrelationType) {
+      setLoadingCorrelation(true);
+      axios.get("https://backend-dashboard-26rc.onrender.com/correlation_data", {
+        params: {
+          start_location: selectedStartLocation,
+          type: selectedCorrelationType
+        }
+      })
+        .then(res => setCorrelationData(res.data))
+        .catch(err => console.error("Failed to fetch correlation data", err))
+        .finally(() => setLoadingCorrelation(false));
+    }
+  }, [selectedStartLocation, selectedCorrelationType]);
+
+  const groupedRoutes = {};
+  latestData.forEach(item => {
+    groupedRoutes[item.route_id] = `${item.start_location} - ${item.end_location}`;
+  });
+
+  const routeOptions = Object.entries(groupedRoutes).map(([routeId, label]) => ({
+    value: routeId,
+    label: `Route ${routeId}: ${label}`
+  }));
+
+  const filteredData = (selectedDayType === 'today' || selectedDayType === 'yesterday')
+    ? todayData
+    : hourlyData.filter(
+      d => Number(d.route_id) === Number(selectedRoute) && d.day_type === selectedDayType
+    );
+
+  const showTable = !selectedRoute && !selectedDayType && !selectedMetric;
+  const showChart = selectedRoute && selectedDayType && selectedMetric;
+
+  const scatterChartData = {
+    datasets: [{
+      label: 'Delay Ratio vs AQI',
+      data: correlationData.delay_ratio.map((delay, i) => ({ x: delay, y: correlationData.aqi[i] })),
+      backgroundColor: 'rgba(255, 99, 132, 0.6)',
+    }]
+  };
+
+  const regressionResult = correlationData.delay_ratio.length > 1
+    ? regression.linear(correlationData.delay_ratio.map((x, i) => [x, correlationData.aqi[i]]))
+    : null;
+
+  const regressionLine = regressionResult ? regressionResult.points.map(([x, y]) => ({ x, y })) : [];
+
+  const rSquared = regressionResult ? regressionResult.r2.toFixed(3) : null;
+
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Routes</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <button
+          className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mr-4"
+          onClick={() => window.location.href = "/"}
+        >
+          Home
+        </button>
+
+        <select
+          value={selectedStartLocation}
+          onChange={(e) => setSelectedStartLocation(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">Select Start Location</option>
+          {startLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+        </select>
+
+        <select
+          value={selectedCorrelationType}
+          onChange={(e) => setSelectedCorrelationType(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">Correlation Type</option>
+          <option value="same_minute">Same Minute</option>
+          <option value="plus_one_hour">+1 Hour ±20min</option>
+          <option value="plus_two_hours">+2 Hours ±20min</option>
+        </select>
+
+        <label className="mx-2">Select Route:</label>
+        <select
+          value={selectedRoute}
+          onChange={(e) => setSelectedRoute(e.target.value)}
+        >
+          <option value="">Select a route</option>
+          {routeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+      </div>
+
+      {showTable && <LiveMap />}
+
+      {loadingCorrelation && <p>Loading correlation data...</p>}
+
+      {selectedStartLocation && selectedCorrelationType && correlationData.delay_ratio.length > 1 && (
+        <div className="mt-8">
+          <Scatter data={scatterChartData} />
+          <p className="mt-2 font-semibold">R² = {rSquared}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
-def get_db_connection():
-    return psycopg2.connect(cursor_factory=psycopg2.extras.DictCursor, **DB_CONFIG)
-
-# --- Models ---
-class TravelUpdate(BaseModel):
-    route_id: int
-    timestamp: datetime.datetime
-    start_location: str
-    end_location: str
-    start_latitude: float
-    start_longitude: float
-    driving_travel_time: float
-    transit_travel_time: float
-    travel_time_difference: float
-    delay_ratio: float
-    aqi: float
-
-class HourlyAverage(BaseModel):
-    route_id: int
-    day_type: str
-    hour: int
-    avg_driving_travel_time: float
-    avg_transit_travel_time: float
-    avg_travel_time_difference: float
-    avg_delay_ratio: float
-    avg_aqi: float
-
-# --- Endpoints ---
-@app.get("/latest", response_model=List[TravelUpdate])
-def get_latest_updates():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT ON (route_id) *
-            FROM travel_updates
-            ORDER BY route_id, timestamp DESC;
-        """)
-        rows = cur.fetchall()
-        conn.close()
-
-        return [
-            TravelUpdate(**row)
-            for row in rows
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/hourly_averages", response_model=List[HourlyAverage])
-def get_hourly_averages():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT 
-                route_id,
-                CASE 
-                    WHEN EXTRACT(DOW FROM timestamp) IN (0, 6) THEN 'weekend'
-                    ELSE 'weekday'
-                END AS day_type,
-                EXTRACT(HOUR FROM timestamp) AS hour,
-                ROUND(AVG(driving_travel_time)::numeric, 2) AS avg_driving_travel_time,
-                ROUND(AVG(transit_travel_time)::numeric, 2) AS avg_transit_travel_time,
-                ROUND(AVG(travel_time_difference)::numeric, 2) AS avg_travel_time_difference,
-                ROUND(AVG(delay_ratio)::numeric, 2) AS avg_delay_ratio,
-                ROUND(AVG(aqi)::numeric, 2) AS avg_aqi
-            FROM travel_updates
-            GROUP BY route_id, day_type, hour
-            ORDER BY route_id, day_type, hour;
-        """)
-        rows = cur.fetchall()
-        conn.close()
-
-        return [HourlyAverage(**row) for row in rows]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/start_locations")
-def get_start_locations():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT start_location
-            FROM travel_updates
-            WHERE start_location IS NOT NULL
-            ORDER BY start_location;
-        """)
-        rows = cur.fetchall()
-        conn.close()
-        start_locations = [row["start_location"] for row in rows]
-        return {"start_locations": start_locations}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/correlation_data")
-def get_correlation_data(start_location: str, type: str):
-    try:
-        conn = get_db_connection()
-        df = pd.read_sql("SELECT delay_ratio, aqi, timestamp FROM travel_updates WHERE start_location = %s ORDER BY timestamp", conn, params=(start_location,))
-        conn.close()
-
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        matched = []
-
-        if type == "same_minute":
-            df['rounded'] = df['timestamp'].dt.floor('min')
-            merged = pd.merge(df[['rounded', 'delay_ratio']], df[['rounded', 'aqi']], on='rounded')
-            matched = merged[['delay_ratio', 'aqi']].dropna().to_dict(orient='records')
-
-        elif type in ["plus_one_hour", "plus_two_hours"]:
-            offset = 60 if type == "plus_one_hour" else 120
-            for idx, row in df.iterrows():
-                target_min = row['timestamp'] + pd.Timedelta(minutes=offset-20)
-                target_max = row['timestamp'] + pd.Timedelta(minutes=offset+20)
-                potential = df[(df['timestamp'] >= target_min) & (df['timestamp'] <= target_max)]
-                if not potential.empty:
-                    matched.append({"delay_ratio": row['delay_ratio'], "aqi": potential.iloc[0]['aqi']})
-
-        return {"delay_ratio": [m["delay_ratio"] for m in matched], "aqi": [m["aqi"] for m in matched]}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
