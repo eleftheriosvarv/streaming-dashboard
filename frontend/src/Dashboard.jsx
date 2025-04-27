@@ -5,9 +5,20 @@ import {
 import regression from 'regression';
 import LiveMap from './components/LiveMap';
 
+const calculatePearsonCorrelation = (x, y) => {
+  const n = x.length;
+  const avgX = x.reduce((a, b) => a + b, 0) / n;
+  const avgY = y.reduce((a, b) => a + b, 0) / n;
+
+  const numerator = x.map((xi, i) => (xi - avgX) * (y[i] - avgY)).reduce((a, b) => a + b, 0);
+  const denominatorX = Math.sqrt(x.map(xi => Math.pow(xi - avgX, 2)).reduce((a, b) => a + b, 0));
+  const denominatorY = Math.sqrt(y.map(yi => Math.pow(yi - avgY, 2)).reduce((a, b) => a + b, 0));
+
+  return numerator / (denominatorX * denominatorY);
+};
+
 export default function Dashboard() {
   const [tab, setTab] = useState('home');
-
   const [hourlyData, setHourlyData] = useState([]);
   const [latestData, setLatestData] = useState([]);
   const [todayData, setTodayData] = useState([]);
@@ -80,12 +91,15 @@ export default function Dashboard() {
   }
 
   const regressionResult = scatterData.length > 1 ? regression.linear(scatterData.map(d => [d.delay_ratio, d.aqi])) : null;
+  const r = scatterData.length > 1 ? calculatePearsonCorrelation(
+    scatterData.map(d => d.delay_ratio),
+    scatterData.map(d => d.aqi)
+  ) : null;
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Routes Dashboard</h1>
 
-      {/* Tabs */}
       <div className="flex space-x-4 mb-6">
         <button onClick={() => setTab('home')} className={`px-4 py-2 rounded ${tab === 'home' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
           Home
@@ -98,7 +112,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Tab Content */}
       {tab === 'home' && (
         <>
           <LiveMap />
@@ -179,7 +192,9 @@ export default function Dashboard() {
                   )}
                 </ScatterChart>
               </ResponsiveContainer>
-              <p className="text-center mt-4 font-semibold">R²: {regressionResult?.r2.toFixed(2)}</p>
+              <p className="text-center mt-4 font-semibold">
+                R: {r !== null ? r.toFixed(2) : 'N/A'} | R²: {regressionResult?.r2.toFixed(2)}
+              </p>
             </>
           )}
         </>
@@ -230,5 +245,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
