@@ -63,6 +63,22 @@ export default function Dashboard() {
         .catch(err => console.error("Failed to fetch today/yesterday data", err));
     }
   }, [selectedDayType, selectedRoute]);
+    useEffect(() => {
+    const fetchLatestData = async () => {
+      try {
+        const response = await fetch("https://backend-dashboard-26rc.onrender.com/latest");
+        const result = await response.json();
+        setLatestData(result);
+      } catch (error) {
+        console.error("Failed to auto-fetch latest data", error);
+      }
+    };
+
+    const interval = setInterval(fetchLatestData, 300000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
 
   const groupedRoutes = {};
   latestData.forEach(item => {
