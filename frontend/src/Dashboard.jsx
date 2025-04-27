@@ -9,11 +9,9 @@ const calculatePearsonCorrelation = (x, y) => {
   const n = x.length;
   const avgX = x.reduce((a, b) => a + b, 0) / n;
   const avgY = y.reduce((a, b) => a + b, 0) / n;
-
   const numerator = x.map((xi, i) => (xi - avgX) * (y[i] - avgY)).reduce((a, b) => a + b, 0);
   const denominatorX = Math.sqrt(x.map(xi => Math.pow(xi - avgX, 2)).reduce((a, b) => a + b, 0));
   const denominatorY = Math.sqrt(y.map(yi => Math.pow(yi - avgY, 2)).reduce((a, b) => a + b, 0));
-
   return numerator / (denominatorX * denominatorY);
 };
 
@@ -229,19 +227,33 @@ export default function Dashboard() {
           </div>
 
           {filteredData.length > 0 && selectedMetric && (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={filteredData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
+                </BarChart>
+              </ResponsiveContainer>
+
+              {selectedRoute && (
+                <div className="flex justify-center mt-6">
+                  <img
+                    src={`/routes/Route_${selectedRoute}.jpg`}
+                    alt={`Route ${selectedRoute}`}
+                    className="max-w-full rounded-lg shadow-lg border border-gray-300"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </>
       )}
     </div>
   );
 }
+
