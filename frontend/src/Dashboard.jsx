@@ -184,8 +184,7 @@ export default function Dashboard() {
 
           {scatterData.length > 0 && (
             <>
-              </ScatterChart>
-                <h2 className="text-xl font-semibold text-center mb-2">
+              <h2 className="text-xl font-semibold text-center mb-2">
                   Correlation between Delay Ratio and AQI
                 </h2>
               <ResponsiveContainer width="100%" height={400}>
