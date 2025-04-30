@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (selectedStartLocation && selectedCorrelationType) {
-      fetch(https://backend-dashboard-26rc.onrender.com/correlation_data?start_location=${selectedStartLocation}&type=${selectedCorrelationType})
+      fetch(`https://backend-dashboard-26rc.onrender.com/correlation_data?start_location=${selectedStartLocation}&type=${selectedCorrelationType}`)
         .then(res => res.json())
         .then(data => setCorrelationData(data))
         .catch(err => console.error("Failed to fetch correlation data", err));
@@ -57,7 +57,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if ((selectedDayType === 'today' || selectedDayType === 'yesterday') && selectedRoute) {
-      fetch(https://backend-dashboard-26rc.onrender.com/today_data?route_id=${selectedRoute}&day_type=${selectedDayType})
+      fetch(`https://backend-dashboard-26rc.onrender.com/today_data?route_id=${selectedRoute}&day_type=${selectedDayType}`)
         .then(res => res.json())
         .then(data => setTodayData(data))
         .catch(err => console.error("Failed to fetch today/yesterday data", err));
@@ -82,12 +82,12 @@ export default function Dashboard() {
 
   const groupedRoutes = {};
   latestData.forEach(item => {
-    groupedRoutes[item.route_id] = ${item.start_location} - ${item.end_location};
+    groupedRoutes[item.route_id] = `${item.start_location} - ${item.end_location}`;
   });
 
   const routeOptions = Object.entries(groupedRoutes).map(([routeId, label]) => ({
     value: routeId,
-    label: Route ${routeId}: ${label}
+    label: `Route ${routeId}: ${label}`
   }));
 
   const filteredData = (selectedDayType === 'today' || selectedDayType === 'yesterday')
@@ -115,13 +115,13 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold mb-4">Routes Dashboard</h1>
 
       <div className="flex space-x-4 mb-6">
-        <button onClick={() => setTab('home')} className={px-4 py-2 rounded ${tab === 'home' ? 'bg-blue-600 text-white' : 'bg-gray-300'}}>
+        <button onClick={() => setTab('home')} className={`px-4 py-2 rounded ${tab === 'home' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
           Home
         </button>
-        <button onClick={() => setTab('correlation')} className={px-4 py-2 rounded ${tab === 'correlation' ? 'bg-blue-600 text-white' : 'bg-gray-300'}}>
+        <button onClick={() => setTab('correlation')} className={`px-4 py-2 rounded ${tab === 'correlation' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
           Correlation
         </button>
-        <button onClick={() => setTab('routes')} className={px-4 py-2 rounded ${tab === 'routes' ? 'bg-blue-600 text-white' : 'bg-gray-300'}}>
+        <button onClick={() => setTab('routes')} className={`px-4 py-2 rounded ${tab === 'routes' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
           Routes
         </button>
       </div>
@@ -181,51 +181,48 @@ export default function Dashboard() {
               <option value="plus_two_hours">2hr Delay</option>
             </select>
           </div>
-
           {scatterData.length > 0 && (
-            <>
-              <ResponsiveContainer width="100%" height={400}>
-                <h2 className="text-xl font-semibold text-center mb-2">
-                  Correlation between Delay Ratio and AQI
-                </h2>
-                <ScatterChart>
-                  <CartesianGrid />
-                  <XAxis
-                    type="number"
-                    dataKey="delay_ratio"
-                    name="Delay Ratio"
-                    label={{ value: 'Delay Ratio', position: 'insideBottom', offset: -5 }}
-                    />
-                  <YAxis
-                    type="number"
-                    dataKey="aqi"
-                    name="AQI"
-                    label={{ value: 'AQI', angle: -90, position: 'insideLeft' }}
-                    />
-                  <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter name="Data" data={scatterData} fill="#8884d8" />
-                  {regressionResult && (
-                    <Line
-                      type="linear"
-                      dataKey="delay_ratio"
-                      stroke="#ff7300"
-                      dot={false}
-                      legendType="none"
-                      data={scatterData.map(d => ({
-                        delay_ratio: d.delay_ratio,
-                        aqi: regressionResult.predict(d.delay_ratio)[1]
-                      }))}
-                    />
-                  )}
-                </ScatterChart>
-              </ResponsiveContainer>
-              <p className="text-center mt-4 font-semibold">
-                R: {r !== null ? r.toFixed(2) : 'N/A'} | R²: {regressionResult?.r2.toFixed(2)}
-              </p>
-            </>
+          <>
+            <h2 className="text-xl font-semibold text-center mb-2">
+              Correlation between Delay Ratio and AQI
+            </h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <ScatterChart>
+                <CartesianGrid />
+                <XAxis
+                  type="number"
+                  dataKey="delay_ratio"
+                  name="Delay Ratio"
+                  label={{ value: 'Delay Ratio', position: 'insideBottom', offset: -5 }}
+                  />
+                <YAxis
+                  type="number"
+                  dataKey="aqi"
+                  name="AQI"
+                  label={{ value: 'AQI', angle: -90, position: 'insideLeft' }}
+                  />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                <Scatter name="Data" data={scatterData} fill="#8884d8" />
+                {regressionResult && (
+            <Line
+              type="linear"
+              dataKey="delay_ratio"
+              stroke="#ff7300"
+              dot={false}
+              legendType="none"
+              data={scatterData.map(d => ({
+                delay_ratio: d.delay_ratio,
+                aqi: regressionResult.predict(d.delay_ratio)[1]
+              }))}
+              />
           )}
-        </>
-      )}
+              </ScatterChart>
+            </ResponsiveContainer>
+            <p className="text-center mt-4 font-semibold">
+              R: {r !== null ? r.toFixed(2) : 'N/A'} | R²: {regressionResult?.r2.toFixed(2)}
+            </p>
+          </>
+        )}
 
       {tab === 'routes' && (
         <>
@@ -281,8 +278,8 @@ export default function Dashboard() {
               {selectedRoute && (
                 <div className="flex justify-center mt-6">
                   <img
-                    src={/routes/Route_${selectedRoute}.jpg}
-                    alt={Route ${selectedRoute}}
+                    src={`/routes/Route_${selectedRoute}.jpg`}
+                    alt={`Route ${selectedRoute}`}
                     className="max-w-full rounded-lg shadow-lg border border-gray-300"
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
@@ -295,5 +292,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 
 
