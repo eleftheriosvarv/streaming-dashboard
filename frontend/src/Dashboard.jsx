@@ -184,11 +184,25 @@ export default function Dashboard() {
 
           {scatterData.length > 0 && (
             <>
+              </ScatterChart>
+                <h2 className="text-xl font-semibold text-center mb-2">
+                  Correlation between Delay Ratio and AQI
+                </h2>
               <ResponsiveContainer width="100%" height={400}>
                 <ScatterChart>
                   <CartesianGrid />
-                  <XAxis type="number" dataKey="delay_ratio" name="Delay Ratio" />
-                  <YAxis type="number" dataKey="aqi" name="AQI" />
+                  <XAxis 
+                    type="number" 
+                    dataKey="delay_ratio" 
+                    name="Delay Ratio" 
+                    label={{ value: 'Delay Ratio', position: 'insideBottom', offset: -5 }} 
+                    />
+                  <YAxis 
+                    type="number" 
+                    dataKey="aqi" 
+                    name="AQI" 
+                    label={{ value: 'AQI', angle: -90, position: 'insideLeft' }} 
+                    />
                   <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                   <Scatter name="Data" data={scatterData} fill="#8884d8" />
                   {regressionResult && (
@@ -204,8 +218,7 @@ export default function Dashboard() {
                       }))}
                     />
                   )}
-                </ScatterChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
               <p className="text-center mt-4 font-semibold">
                 R: {r !== null ? r.toFixed(2) : 'N/A'} | R²: {regressionResult?.r2.toFixed(2)}
               </p>
@@ -247,8 +260,18 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={filteredData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-                  <YAxis />
+                  <XAxis 
+                    dataKey="hour" 
+                    tickFormatter={h => `${h}:00`} 
+                    label={{ value: 'Hour of Day', position: 'insideBottom', offset: -5 }} 
+                    />
+                  <YAxis 
+                    label={{ 
+                      value: selectedMetric.replaceAll('_', ' ').toUpperCase(), 
+                      angle: -90, 
+                      position: 'insideLeft' 
+                    }} 
+                    />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey={selectedMetric} fill="#8884d8" name={selectedMetric} />
